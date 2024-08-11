@@ -7,6 +7,7 @@ import (
 	"github.com/Afonso247/api-pedidos/app"
 )
 
+// inicia a aplicação a partir do package app
 func main() {
 	app := app.New()
 
