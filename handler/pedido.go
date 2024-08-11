@@ -7,7 +7,7 @@ import (
 
 type Pedido struct{}
 
-// HTTP requests
+// funções que respondem a requests HTTP
 func (p *Pedido) Create(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Pedido criado com sucesso!")
 }
