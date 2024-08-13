@@ -12,12 +12,16 @@ import (
 type App struct {
 	router http.Handler
 	rdb    *redis.Client
+	config Config
 }
 
 // cria uma nova instância de App com um roteador carregado
-func New() *App {
+func New(config Config) *App {
 	app := &App{
-		rdb: redis.NewClient(&redis.Options{}),
+		rdb: redis.NewClient(&redis.Options{
+			Addr: config.RedisAddr,
+		}),
+		config: config,
 	}
 	
 	app.loadRouter()
@@ -28,7 +32,7 @@ func New() *App {
 // inicia o servidor
 func (a *App) Start(ctx context.Context) error {
 	server := &http.Server{
-		Addr:    ":3000",
+		Addr:    fmt.Sprintf(":%d", a.config.ServerPort),
 		Handler: a.router,
 	}
 

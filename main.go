@@ -11,7 +11,7 @@ import (
 
 // inicia a aplicação a partir do package app
 func main() {
-	app := app.New()
+	app := app.New(app.LoadConfig())
 
 	// listen por interrupções (ex: SIGINT, SIGTERM)
 	// ao receber, cancele o contexto
