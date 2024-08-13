@@ -2,6 +2,7 @@ package model
 
 import "github.com/google/uuid"
 
+// modelo do pedido
 type Pedido struct{
 
 	PedidoID uint64 `json:"pedido_id"`
@@ -12,7 +13,9 @@ type Pedido struct{
 	ConcluidoEm *time.Time `json:"concluido_em"`
 }
 
+// modelo da linha do pedido
 type LineItem struct{
+	
 	ItemID uuid.UUID `json:"item_id"`
 	Quantidade uint `json:"quantidade"`
 	Preco uint `json:"preco"`
