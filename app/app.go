@@ -17,9 +17,10 @@ type App struct {
 // cria uma nova instância de App com um roteador carregado
 func New() *App {
 	app := &App{
-		router: loadRouter(), // loadRouter, from routes.go
 		rdb: redis.NewClient(&redis.Options{}),
 	}
+	
+	app.loadRouter()
 
 	return app
 }

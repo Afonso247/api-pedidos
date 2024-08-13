@@ -7,10 +7,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/Afonso247/api-pedidos/handler"
+	"github.com/Afonso247/api-pedidos/repositorio/pedido"
 )
 
 // carrega o roteador
-func loadRouter() *chi.Mux {
+func (a *App) loadRouter() {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)
@@ -21,14 +22,18 @@ func loadRouter() *chi.Mux {
 	})
 
 	// loadPedidoRouter lida com os requests HTTP na subrota /pedidos
-	router.Route("/pedidos", loadPedidoRouter)
+	router.Route("/pedidos", a.loadPedidoRouter)
 
-	return router
+	a.router = router
 }
 
-func loadPedidoRouter(router chi.Router) {
+func (a *App) loadPedidoRouter(router chi.Router) {
 	// instancia do package handler
-	pedidoHandler := &handler.Pedido{}
+	pedidoHandler := &handler.Pedido{
+		Repo: &pedido.RedisRepo{
+			Client: a.rdb,
+		},
+	}
 
 	// HTTP requests
 	router.Post("/", pedidoHandler.Create)

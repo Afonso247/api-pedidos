@@ -145,8 +145,8 @@ func (r *RedisRepo) UpdateByID(ctx context.Context, pedido *model.Pedido) error 
 
 // struct de paginação
 type FindAllPage struct {
-	Offset int
-	Limit  int
+	Offset uint64
+	Limit  uint64
 }
 
 // struct de resultado p/ FindAll
@@ -156,7 +156,7 @@ type FindResult struct {
 }
 
 // procura todos os pedidos
-func (r *RedisRepo) FindAll(ctx context.Context, page FindAllPage) ([]model.Pedido, error) {
+func (r *RedisRepo) FindAll(ctx context.Context, page FindAllPage) (FindResult, error) {
 
 	// procura os pedidos pelo Offset e Limit
 	res := r.Client.SScan(ctx, "pedidos", page.Offset, "*", int64(page.Limit))

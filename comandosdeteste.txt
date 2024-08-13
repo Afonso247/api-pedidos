@@ -1,0 +1,4 @@
+Todos esses comandos foram utilizados com o Bash
+
+curl -X POST -d '{"cliente_id":"'$(uuidgen)'","line_items":[{"item_id":"'$(uuidgen)'","quantidade":5,"preco":199}]}' localhost:3000/pedidos
+curl -sS localhost:3000/pedidos | jq
