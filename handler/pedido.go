@@ -24,11 +24,11 @@ type Pedido struct{
 
 // POST request
 func (p *Pedido) Create(w http.ResponseWriter, r *http.Request) {
+	// obtem o body da requisição
 	var body struct {
 		ClienteID uuid.UUID `json:"cliente_id"`
 		LineItems []model.LineItem `json:"line_items"`
 	}
-
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -43,6 +43,7 @@ func (p *Pedido) Create(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().In(loc)
 
+	// cria o pedido
 	pedido := model.Pedido{
 		PedidoID: rand.Uint64(),
 		ClienteID: body.ClienteID,
@@ -50,6 +51,7 @@ func (p *Pedido) Create(w http.ResponseWriter, r *http.Request) {
 		CriadoEm: &now,
 	}
 
+	// insere o pedido
 	err = p.Repo.Insert(r.Context(), &pedido)
 	if err != nil {
 		fmt.Println("Erro ao inserir o pedido:", err)
@@ -57,6 +59,7 @@ func (p *Pedido) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// se o pedido for inserido com sucesso, retorna o pedido
 	res, err := json.Marshal(pedido)
 	if err != nil {
 		fmt.Println("Erro ao serializar o pedido:", err)
@@ -70,6 +73,7 @@ func (p *Pedido) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET request
 func (p *Pedido) List(w http.ResponseWriter, r *http.Request) {
+	// obtem o cursor da requisição (default = 0)
 	cursorStr := r.URL.Query().Get("cursor")
 	if cursorStr == "" {
 		cursorStr = "0"
@@ -78,12 +82,14 @@ func (p *Pedido) List(w http.ResponseWriter, r *http.Request) {
 	const decimal = 10
 	const bitSize = 64
 
+	// converte cursor em uint64
 	cursor, err := strconv.ParseUint(cursorStr, decimal, bitSize)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	// busca os pedidos com base no cursor e limit
 	const limit = 50
 	res, err := p.Repo.FindAll(r.Context(), pedido.FindAllPage{
 		Offset: cursor,
@@ -95,6 +101,7 @@ func (p *Pedido) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// cria response p/ armazenar os pedidos encontrados
 	var response struct {
 		Items []model.Pedido `json:"pedidos"`
 		Prox  uint64         `json:"prox,omitempty"`
@@ -103,6 +110,7 @@ func (p *Pedido) List(w http.ResponseWriter, r *http.Request) {
 	response.Items = res.Pedidos
 	response.Prox = res.Cursor
 
+	// serializa os pedidos
 	data, err := json.Marshal(response)
 	if err != nil {
 		fmt.Println("Erro ao serializar os pedidos:", err)
@@ -116,26 +124,32 @@ func (p *Pedido) List(w http.ResponseWriter, r *http.Request) {
 
 // GET request
 func (p *Pedido) GetByID(w http.ResponseWriter, r *http.Request) {
+	// obtem o ID da requisição
 	idParam := chi.URLParam(r, "id")
 
 	const base = 10
 	const bitSize = 64
+	// converte idParam em uint64
 	id, err := strconv.ParseUint(idParam, base, bitSize)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	// busca o pedido pelo ID
 	o, err := p.Repo.FindByID(r.Context(), id)
 	if errors.Is(err, pedido.ErrNotExist) {
+		// se o pedido não existir, retorna 404
 		w.WriteHeader(http.StatusNotFound)
 		return
 	} else if err != nil {
+		// se houver algum outro erro, retorna 500
 		fmt.Println("Erro ao buscar o pedido pelo id:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	// serializa o pedido
 	if err := json.NewEncoder(w).Encode(o); err != nil {
 		fmt.Println("Erro ao serializar o pedido:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -154,22 +168,27 @@ func (p *Pedido) UpdateByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// obtem o ID da requisição
 	idParam := chi.URLParam(r, "id")
 
 	const base = 10
 	const bitSize = 64
 
+	// converte idParam em uint64
 	id, err := strconv.ParseUint(idParam, base, bitSize)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	// busca o pedido pelo ID
 	elPedido, err := p.Repo.FindByID(r.Context(), id)
 	if errors.Is(err, pedido.ErrNotExist) {
+		// se o pedido não existir, retorna 404
 		w.WriteHeader(http.StatusNotFound)
 		return
 	} else if err != nil {
+		// se houver algum outro erro, retorna 500
 		fmt.Println("Erro ao buscar o pedido pelo id:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -187,14 +206,19 @@ func (p *Pedido) UpdateByID(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().In(loc)
 
+	// atualiza o pedido com base no request body (status)
 	switch body.Status {
 	case enviadoStatus:
+		// se o status for "enviado" e o pedido não tiver sido enviado, 
+		// atualiza o campo EnviadoEm
 		if elPedido.EnviadoEm != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		elPedido.EnviadoEm = &now
 	case concluidoStatus:
+		// se o status for "concluido" e o pedido não tiver sido enviado ou 
+		// não tiver sido concluído, atualiza o campo ConcluidoEm
 		if elPedido.ConcluidoEm != nil || elPedido.EnviadoEm == nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -205,6 +229,7 @@ func (p *Pedido) UpdateByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// atualiza o pedido
 	err = p.Repo.UpdateByID(r.Context(), &elPedido)
 	if err != nil {
 		fmt.Println("Erro ao atualizar o pedido:", err)
@@ -212,6 +237,7 @@ func (p *Pedido) UpdateByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// serializa o pedido
 	if err := json.NewEncoder(w).Encode(elPedido); err != nil {
 		fmt.Println("Erro ao serializar o pedido:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -221,21 +247,26 @@ func (p *Pedido) UpdateByID(w http.ResponseWriter, r *http.Request) {
 
 // DELETE request
 func (p *Pedido) DeleteByID(w http.ResponseWriter, r *http.Request) {
+	// obtem o ID da requisição
 	idParam := chi.URLParam(r, "id")
 
 	const base = 10
 	const bitSize = 64
+	// converte idParam em uint64
 	id, err := strconv.ParseUint(idParam, base, bitSize)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	// deleta o pedido pelo ID
 	err = p.Repo.DeleteByID(r.Context(), id)
 	if errors.Is(err, pedido.ErrNotExist) {
+		// se o pedido não existir, retorna 404
 		w.WriteHeader(http.StatusNotFound)
 		return
 	} else if err != nil {
+		// se houver algum outro erro, retorna 500
 		fmt.Println("Erro ao deletar o pedido:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
